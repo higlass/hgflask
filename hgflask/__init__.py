@@ -6,13 +6,14 @@ import pandas as pd
 import cytoolz as toolz
 import cooler
 import bbi
+import hgtiles.cooler as hgco
+
 from .tilesets.bigwig_tiles import get_quadtree_depth, get_chromsizes, get_bigwig_tile
 
 from flask import Flask
 from flask import request, jsonify
 #from flask_restful import reqparse, abort, Api, Resource
 from flask_cors import CORS
-
 
 app = Flask(__name__)
 CORS(app)
@@ -242,6 +243,8 @@ def tileset_info():
             info[uuid] = ts.copy()
             if info[uuid]['filetype'] == 'bigwig':
                 info[uuid].update(bigwig_tsinfo(ts['url']))                
+            elif info[uuid]['filetype'] == 'cooler':
+                info[uuid].update(hgco.tileset_info(ts['filepath']))
         else:
             info[uuid] = {
                 'error': 'No such tileset with uid: {}'.format(uuid)
@@ -263,7 +266,10 @@ def tiles():
     for uuid, tids in uuids_to_tids.items():
         ts = next((ts for ts in TILESETS if ts['uuid'] == uuid), None)
         if ts is not None:
-            tiles.extend(bigwig_tiles(ts['url'], tids))
+            if ts['filetype'] == 'bigwig':
+                tiles.extend(bigwig_tiles(ts['url'], tids))
+            elif ts['filetype'] == 'cooler':
+                tiles.extend(hgco.tiles(ts['filepath'], tids))
 
     data = {tid: tval for tid, tval in tiles}
     return jsonify(data)
