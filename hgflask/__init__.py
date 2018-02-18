@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import base64
+import bbi
+import cooler
+import cytoolz as toolz
+import hgtiles.cooler as hgco
+import hgtiles.hitile as hghi
 import math
 import numpy as np
 import pandas as pd
-import cytoolz as toolz
-import cooler
-import bbi
-import hgtiles.cooler as hgco
+import sys
 
 from .tilesets.bigwig_tiles import get_quadtree_depth, get_chromsizes, get_bigwig_tile
 
@@ -245,6 +247,11 @@ def tileset_info():
                 info[uuid].update(bigwig_tsinfo(ts['url']))                
             elif info[uuid]['filetype'] == 'cooler':
                 info[uuid].update(hgco.tileset_info(ts['filepath']))
+            elif info[uuid]['filetype'] == 'hitile':
+                info[uuid].update(hghi.tileset_info(ts['filepath']))
+            else:
+                print("Unknown filetype:", info[uuid]['filetype'], 
+                        file=sys.stderr)
         else:
             info[uuid] = {
                 'error': 'No such tileset with uid: {}'.format(uuid)
@@ -270,6 +277,10 @@ def tiles():
                 tiles.extend(bigwig_tiles(ts['url'], tids))
             elif ts['filetype'] == 'cooler':
                 tiles.extend(hgco.tiles(ts['filepath'], tids))
+            elif ts['filetype'] == 'hitile':
+                tiles.extend(hghi.tiles(ts['filepath'], tids))
+            else:
+                print("Unknown filetype:", ts['filetype'], file=sys.stderr)
 
     data = {tid: tval for tid, tval in tiles}
     return jsonify(data)
