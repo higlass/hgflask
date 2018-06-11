@@ -4,6 +4,7 @@ import bbi
 import cooler
 import cytoolz as toolz
 import hgtiles.bed2ddb as hgb2
+import hgtiles.bedarcsdb as hgbad
 import hgtiles.cooler as hgco
 import hgtiles.hitile as hghi
 import math
@@ -284,14 +285,12 @@ def tiles():
                 tiles.extend(hghi.tiles(ts['filepath'], tids))
             elif ts['filetype'] == 'bedarcsdb':
                 print('tids:', tids)
-                tiles.extend(hgb2.get_1D_tiles(ts['filepath'], tids))
+                tiles.extend(hgbad.tiles(ts['filepath'], tids))
             else:
                 print("Unknown filetype:", ts['filetype'], file=sys.stderr)
 
     data = {tid: tval for tid, tval in tiles}
     return jsonify(data)
-
-
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)
