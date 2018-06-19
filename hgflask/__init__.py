@@ -242,6 +242,8 @@ def tileset_info():
     info = {}
     for uuid in uuids:
         ts = next((ts for ts in TILESETS if ts['uuid'] == uuid), None)
+
+        print('ts:', ts)
         
         if ts is not None:
             info[uuid] = ts.copy()
@@ -251,8 +253,9 @@ def tileset_info():
                 info[uuid].update(hgco.tileset_info(ts['filepath']))
             elif info[uuid]['filetype'] == 'hitile':
                 info[uuid].update(hghi.tileset_info(ts['filepath']))
-            elif ts['filetype'] == 'bedarcsdb':
-                tiles.extend(hgb2.get_2d_tileset_info(ts['filepath'], tids))
+            elif info[uuid]['filetype'] == 'bedarcsdb':
+                print("filetype", info[uuid]['filetype'])
+                info[uuid].update(hgbad.get_2d_tileset_info(ts['filepath']))
             else:
                 print("Unknown filetype:", info[uuid]['filetype'], 
                         file=sys.stderr)
@@ -284,7 +287,6 @@ def tiles():
             elif ts['filetype'] == 'hitile':
                 tiles.extend(hghi.tiles(ts['filepath'], tids))
             elif ts['filetype'] == 'bedarcsdb':
-                print('tids:', tids)
                 tiles.extend(hgbad.tiles(ts['filepath'], tids))
             else:
                 print("Unknown filetype:", ts['filetype'], file=sys.stderr)
