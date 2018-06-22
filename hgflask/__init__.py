@@ -3,6 +3,7 @@ import base64
 import bbi
 import cooler
 import cytoolz as toolz
+import hgtiles.beddb as hgbe
 import hgtiles.bed2ddb as hgb2
 import hgtiles.bedarcsdb as hgbad
 import hgtiles.cooler as hgco
@@ -253,6 +254,9 @@ def tileset_info():
                 info[uuid].update(hgco.tileset_info(ts['filepath']))
             elif info[uuid]['filetype'] == 'hitile':
                 info[uuid].update(hghi.tileset_info(ts['filepath']))
+            elif info[uuid]['filetype'] == 'beddb':
+                print("filetype", info[uuid]['filetype'])
+                info[uuid].update(hgbe.get_tileset_info(ts['filepath']))
             elif info[uuid]['filetype'] == 'bedarcsdb':
                 print("filetype", info[uuid]['filetype'])
                 info[uuid].update(hgbad.get_2d_tileset_info(ts['filepath']))
@@ -286,6 +290,8 @@ def tiles():
                 tiles.extend(hgco.tiles(ts['filepath'], tids))
             elif ts['filetype'] == 'hitile':
                 tiles.extend(hghi.tiles(ts['filepath'], tids))
+            elif ts['filetype'] == 'beddb':
+                tiles.extend(hgbe.tiles(ts['filepath'], tids))
             elif ts['filetype'] == 'bedarcsdb':
                 tiles.extend(hgbad.tiles(ts['filepath'], tids))
             else:
