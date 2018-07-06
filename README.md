@@ -4,8 +4,7 @@ Lightweight Flask HiGlass Server for dynamic track generation in interactive Pyt
 
 ## hgflask.client
 
-The `client` subpackage contains wrappers for HiGlass viewconfig management. Examples:
-
+The `client` subpackage contains wrappers for HiGlass viewconfig management. Typicall used with the [higlass-jupyter](https://github.com/reservoirgenomics/jupyter-higlass) widget.
 ```
 hgc = hfc.HiGlassConfig()
 
