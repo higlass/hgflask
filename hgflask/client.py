@@ -68,7 +68,8 @@ class HiGlassConfig:
         
         return uid
     
-    def add_track(self, view_uid, track_type, position, server, tileset_uuid):
+    def add_track(self, view_uid, track_type, position, server, 
+            tileset_uuid, options={}):
         '''
         Add a track to a position.
         
@@ -100,7 +101,8 @@ class HiGlassConfig:
         selected_view['tracks'][position] += [{
             'server': server,
             'tilesetUid': tileset_uuid,
-            'type': track_type
+            'type': track_type,
+            'options': options
         }]
     
     def to_json_string(self):
