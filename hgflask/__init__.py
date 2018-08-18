@@ -3,15 +3,23 @@ import base64
 import bbi
 import cooler
 import cytoolz as toolz
+import functools as ft
+import json
+import requests
+import slugid
+import multiprocessing as mp
 
 import hgtiles.bed2ddb as hgb2
 import hgtiles.cooler as hgco
 import hgtiles.hitile as hghi
+import hgtiles.bigwig as hgbi
+import hgtiles.files as hgfi
 
 import math
 import numpy as np
 import pandas as pd
 import sys
+import time
 
 from .tilesets.bigwig_tiles import get_quadtree_depth, get_chromsizes, get_bigwig_tile
 
@@ -236,6 +244,39 @@ def create_app(tilesets, external_filetype_handlers=None):
             "results": TILESETS,
         })
 
+    def get_filepath(tileset_def):
+        '''
+        Get the filepath from a tileset definition
+
+        Parameters
+        ----------
+        tileset_def: { 'filepath': ..., 'uid': ..., 'filetype': ...}
+            The tileset definition     
+        returns: string
+            The filepath, either as specified in the tileset_def or
+            None
+        '''
+        if 'filepath' in tileset_def:
+            return tileset_def['filepath']
+
+        return None
+
+    def get_filetype(tileset_def):
+        '''
+        Get the filetype for the given dataset.
+
+        Parameters
+        ----------
+        tileset_def: { 'filepath': ..., 'uid': ..., 'filetype': ...}
+            The tileset definition     
+        returns: string
+            The filetype, either as specified in the tileset_def or
+            inferred
+        '''
+        if 'filetype' in tileset_def:
+            return tileset_def['filetype']
+
+        return hgfi.infer_filetype(tileset_def['filepath'])
 
     @app.route('/api/v1/tileset_info/', methods=['GET'])
     def tileset_info():
@@ -249,26 +290,28 @@ def create_app(tilesets, external_filetype_handlers=None):
                 info[uuid] = ts.copy()
 
                 # see if there's a filepath provided
-                filetype = info[uuid]['filetype']
                 if 'filepath' in info[uuid]:
                     filepath = info[uuid]['filepath']
                 else:
                     filepath = None
 
-                if info[uuid]['filetype'] in external_filetype_handlers:
+                filetype = get_filetype(info[uuid])
+                print('filetype:', filetype)
+
+                if filetype in external_filetype_handlers:
                     handler = external_filetype_handlers[filetype]['tileset_info']
                     if filepath is not None:
                         info[uuid].update(handler(filepath))
                     else:
                         info[uuid].update(handler())
-                elif info[uuid]['filetype'] == 'bigwig':
-                    info[uuid].update(bigwig_tsinfo(ts['url']))                
-                elif info[uuid]['filetype'] == 'cooler':
-                    info[uuid].update(hgco.tileset_info(ts['filepath']))
-                elif info[uuid]['filetype'] == 'hitile':
-                    info[uuid].update(hghi.tileset_info(ts['filepath']))
-                elif ts['filetype'] == 'bedarcsdb':
-                    tiles.extend(hgb2.get_2d_tileset_info(ts['filepath'], tids))
+                elif filetype == 'bigwig':
+                    info[uuid].update(bigwig_tsinfo(filepath))                
+                elif filetype == 'cooler':
+                    info[uuid].update(hgco.tileset_info(filepath))
+                elif filetype == 'hitile':
+                    info[uuid].update(hghi.tileset_info(filepath))
+                elif filetype == 'bedarcsdb':
+                    tiles.extend(hgb2.get_2d_tileset_info(filepath))
                 else:
                     print("Unknown filetype:", info[uuid]['filetype'], 
                             file=sys.stderr)
@@ -294,29 +337,26 @@ def create_app(tilesets, external_filetype_handlers=None):
         for uuid, tids in uuids_to_tids.items():
             ts = next((ts for ts in TILESETS if ts['uuid'] == uuid), None)
             if ts is not None:
-                filetype = ts['filetype']
-                if 'filepath' in ts:
-                    filepath = ts['filepath']
-                else:
-                    filepath = None
+                filetype = get_filetype(ts)
+                filepath = get_filepath(ts)
 
-                if ts['filetype'] in external_filetype_handlers:
+                if filetype in external_filetype_handlers:
                     handler = external_filetype_handlers[filetype]['tiles']
                     if filepath is not None:
                         tiles.extend(handler(filepath, tids))
                     else:
                         tiles.extend(handler(tids))
-                elif ts['filetype'] == 'bigwig':
-                    tiles.extend(bigwig_tiles(ts['url'], tids))
-                elif ts['filetype'] == 'cooler':
-                    tiles.extend(hgco.tiles(ts['filepath'], tids))
-                elif ts['filetype'] == 'hitile':
-                    tiles.extend(hghi.tiles(ts['filepath'], tids))
-                elif ts['filetype'] == 'bedarcsdb':
+                elif filetype == 'bigwig':
+                    tiles.extend(hgbi.tiles(filepath, tids))
+                elif filetype == 'cooler':
+                    tiles.extend(hgco.tiles(filepath, tids))
+                elif filetype == 'hitile':
+                    tiles.extend(hghi.tiles(filepath, tids))
+                elif filetype == 'bedarcsdb':
                     print('tids:', tids)
-                    tiles.extend(hgb2.get_1D_tiles(ts['filepath'], tids))
+                    tiles.extend(hgb2.get_1D_tiles(filepath, tids))
                 else:
-                    print("Unknown filetype:", ts['filetype'], file=sys.stderr)
+                    print("Unknown filetype:", filetype, file=sys.stderr)
 
         data = {tid: tval for tid, tval in tiles}
         return jsonify(data)
@@ -329,3 +369,143 @@ def create_app(tilesets, external_filetype_handlers=None):
         # t = threading.Thread(target=partial(app.run, debug=True, port=5000))
 
     return app
+
+def get_open_port():
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("",0))
+        s.listen(1)
+        port = s.getsockname()[1]
+        s.close()
+        return port
+
+class RunningServer():
+    def __init__(self, port, process):
+        '''
+        Maintain a reference to a running higlass server
+
+        Parameters:
+        ----------
+        port: int
+            The port that this server is running on
+        process: Popen.process
+            The process running the server
+        '''
+        self.port = port
+        self.process = process
+
+    def tileset_info(self, uid):
+        '''
+        Return the tileset info for the given tileset
+        '''
+        url = 'http://localhost:{port}/api/v1/tileset_info/?d={uid}'.format(
+                port=self.port, uid=uid)
+
+        req = requests.get(url)
+        if req.status_code != 200:
+            raise Exception('Error fetching tileset_info:', req.content)
+
+        content = json.loads(req.content)
+        return content[uid]
+
+    def tiles(self, uid, z, x, y=None):
+        '''
+        Return tiles from the specified dataset (uid) at
+        the given position (z,x,[u])
+        '''
+        tile_id ='{uid}.{z}.{x}'.format(uid=uid, z=z, x=x)
+        if y is not None:
+            tile_id += '.{y}'.format(y=y)
+        url = 'http://localhost:{port}/api/v1/tiles/?d={tile_id}'.format(
+                port=self.port, tile_id=tile_id)
+
+        req = requests.get(url)
+        if req.status_code != 200:
+            raise Exception('Error fetching tile:', req.content)
+
+        content = json.loads(req.content)
+        return content[tile_id]
+
+    def stop(self):
+        '''
+        Stop this server so that the calling process can exit
+        '''
+        self.process.terminate()
+
+'''
+Keep track of the server processes that have been started.
+So that when someone says 'start', the old ones are terminated
+'''
+processes = {}
+
+def start(tilesets, requested_port=None, filetype_handlers={}):
+    '''
+    Start the hgflask server.
+
+    Parameters
+    ----------
+    tilesets: object
+        The list of tilesets to serve. For example:
+        TILESETS = [{  
+            'uuid': "abc",
+            'filetype': "grid_1000",
+            'datatype': "matrix",
+        },
+        {  
+            'uuid': "abc1",
+            'filetype': "grid_8000",
+            'datatype': "matrix",
+        },
+        ]
+    requested_port: int
+        The port to start this server on. If it is None, a port
+        will automatically be assigned.
+
+    filetype_handlers: dict
+        A dictionary of handlers for filetypes not supported out of the
+        box
+    '''
+
+    global processes
+
+    print("processes:", processes)
+    to_delete = []
+
+    for puid in processes:
+        print("terminating:", puid)
+        processes[puid].terminate()
+        to_delete += [puid]
+
+    for puid in to_delete:
+        del processes[puid]
+
+    # we're going to assign a uuid to each server process so that if anything
+    # goes wrong, the variable referencing the process doesn't get lost
+    app = create_app(tilesets=tilesets, external_filetype_handlers=filetype_handlers)# we're going to assign a uuid to each server process so that if anything
+    # goes wrong, the variable referencing the process doesn't get lost
+    app = create_app(tilesets=tilesets, external_filetype_handlers=filetype_handlers)
+
+    port=get_open_port() if requested_port is None else requested_port
+
+    uuid = slugid.nice().decode('utf8')
+    processes[uuid] = mp.Process(
+        target=ft.partial(app.run, 
+                          debug=True, 
+                          port=port, 
+                          host='0.0.0.0',
+                          use_reloader=False))
+
+    processes[uuid].start()
+
+    connected = False
+    while not connected:
+        try:
+            ret = requests.get('http://localhost:{}/api/v1/tileset_info/?d=x'.format(port))
+            connected = True
+        except Exception as err:
+            print('sleeping')
+            time.sleep(.2)
+            pass
+
+    return RunningServer(port, processes[uuid])
+    print("processes", processes)

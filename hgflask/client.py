@@ -2,7 +2,6 @@ import json
 import slugid
 
 class HiGlassConfig:
-
     def __init__(self):
         self.viewconf = {
         'editable': True,
