@@ -4,51 +4,20 @@ Lightweight Flask HiGlass Server for dynamic track generation in interactive Pyt
 
 ## Usage
 
+Starting a hgflask server:
+
 ```
-import functools as ft
-import hgtiles
-import hgtiles.cooler as hgco
 import hgflask
-import multiprocessing as mp
-import os.path as op
-import slugid
-from hgflask import create_app
+import hgflask.client as hfc
 
-TILESETS = [{  
-    'uuid': "abc",
-    'filetype': "grid_1000",
-    'datatype': "matrix",
-    },
-    {  
-    'uuid': "abc1",
-    'filetype': "grid_8000",
-    'datatype': "matrix",
-    },
+tilesets = [
+    {
+        'filepath': 'matrix.mcool',
+        'uuid': 'a',
+    }
 ]
-
-# check if we're already keeping track of any processes
-try:
-    processes
-except Exception:
-    processes = {}
-    
-for puid in processes:
-    processes[puid].terminate()
-
-
-# we're going to assign a uuid to each server process so that if anything
-# goes wrong, the variable referencing the process doesn't get lost
-app = create_app(tilesets=TILESETS, external_filetype_handlers=filetype_handlers)
-
-port=get_open_port()
-uuid = slugid.nice().decode('utf8')
-processes[uuid] = mp.Process(
-    target=ft.partial(app.run, 
-                      debug=True, 
-                      port=port, 
-                      host='0.0.0.0',
-                      use_reloader=False))
-processes[uuid].start()
+server = hgflask.start(tilesets)
+print(server.tileset_info('a'))
 ```
 
 ## hgflask.client
@@ -56,18 +25,11 @@ processes[uuid].start()
 The `client` subpackage contains wrappers for HiGlass viewconfig management. Typicall used with the [higlass-jupyter](https://github.com/reservoirgenomics/jupyter-higlass) widget.
 ```
 hgc = hfc.HiGlassConfig()
+view_uid = hgc.add_view()
+hgc.add_track(view_uid, 'heatmap', 'center', 
+        'http://localhost:{}/api/v1'.format(server.port), 
+        'a')
 
-# create two views, each occupying half of the 12 unit wide grid
-view1 = hgc.add_view(x=0, width=6)
-view2 = hgc.add_view(x=6, width=6)
-
-# Add a track to the first view
-hgc.add_track(view1, 'heatmap', 'center', 'http://higlass.io/api/v1', 'CQMd6V_cRw6iCI_-Unl3PQ')
-```
-
-Start the widget:
-
-```
 import jupyter_higlass
 jupyter_higlass.HiGlassDisplay(viewconf=hgc.to_json_string())
 ```
