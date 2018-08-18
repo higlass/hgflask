@@ -22,7 +22,7 @@ print(server.tileset_info('a'))
 
 ## hgflask.client
 
-The `client` subpackage contains wrappers for HiGlass viewconfig management. Typicall used with the [higlass-jupyter](https://github.com/reservoirgenomics/jupyter-higlass) widget.
+The `client` subpackage contains wrappers for HiGlass viewconfig management. Typically used with the [higlass-jupyter](https://github.com/reservoirgenomics/jupyter-higlass) widget.
 ```
 hgc = hfc.HiGlassConfig()
 view_uid = hgc.add_view()
