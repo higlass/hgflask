@@ -2,3 +2,4 @@ cytoolz
 flask
 flask_cors
 slugid
+hgtiles
