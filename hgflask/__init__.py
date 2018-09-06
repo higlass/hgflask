@@ -329,7 +329,7 @@ So that when someone says 'start', the old ones are terminated
 '''
 processes = {}
 
-def start(tilesets, requested_port=None, filetype_handlers={}):
+def start(tilesets, port=None, filetype_handlers={}):
     '''
     Start the hgflask server.
 
@@ -348,7 +348,7 @@ def start(tilesets, requested_port=None, filetype_handlers={}):
             'datatype': "matrix",
         },
         ]
-    requested_port: int
+    port: int
         The port to start this server on. If it is None, a port
         will automatically be assigned.
 
@@ -376,7 +376,7 @@ def start(tilesets, requested_port=None, filetype_handlers={}):
     # goes wrong, the variable referencing the process doesn't get lost
     app = create_app(tilesets=tilesets, external_filetype_handlers=filetype_handlers)
 
-    port=get_open_port() if requested_port is None else requested_port
+    port=get_open_port() if port is None else port
 
     uuid = slugid.nice().decode('utf8')
     processes[uuid] = mp.Process(
