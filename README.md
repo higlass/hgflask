@@ -4,6 +4,8 @@ Lightweight Flask HiGlass Server for dynamic track generation in interactive Pyt
 
 ## Usage
 
+### Server
+
 Starting a hgflask server:
 
 ```
@@ -19,8 +21,43 @@ tilesets = [
 server = hgflask.start(tilesets)
 print(server.tileset_info('a'))
 ```
+#### Custom data handlers
 
-## hgflask.client
+If we would like to create our own custom data server, we have to register
+the `tileset_info` and `tiles` methods:
+
+```
+handlers = {
+    'tileset_info': ft.partial(tileset_info, hg_points),
+    'tiles': ft.partial(tiles_wrapper, hg_points),
+}
+```
+And call `hgflask.start` with this extra information:
+
+```
+import hgflask
+import functools as ft
+
+handlers = {
+    'tileset_info': ft.partial(tileset_info, hg_points),
+    'tiles': ft.partial(tiles_wrapper, hg_points),
+}
+
+tilesets = [{
+    'filetype': 'scatter_points',
+    'uuid': 'a'
+}]
+
+server = hgflask.start(tilesets, external_filetype_handlers = handlers)
+```
+
+And then we can test the running server:
+
+```
+server.tileset_info('a')
+```
+
+### Client
 
 The `client` subpackage contains wrappers for HiGlass viewconfig management. Typically used with the [higlass-jupyter](https://github.com/reservoirgenomics/jupyter-higlass) widget.
 ```
