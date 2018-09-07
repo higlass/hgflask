@@ -362,6 +362,12 @@ def start(tilesets, port=None, filetype_handlers={}):
     print("processes:", processes)
     to_delete = []
 
+    # simmple integrity check
+    for tileset in tilesets:
+        if 'filepath' not in tileset and tileset['filetype'] not in filetype_handlers:
+            print("WARNING: tileset missing filepath or filetype handler", tileset)
+
+
     for puid in processes:
         print("terminating:", puid)
         processes[puid].terminate()
