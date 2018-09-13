@@ -3,7 +3,7 @@ import slugid
 
 class HiGlassTrack:
     def __init__(self, track_type, position, server=None, 
-            tileset_uuid=None, options={}):
+            tileset_uuid=None, height=None, options={}):
         '''
         Add a track to a position.
         
@@ -29,6 +29,8 @@ class HiGlassTrack:
             new_track['server'] = server
         if tileset_uuid is not None:
             new_track['tilesetUid'] = tileset_uuid
+        if height is not None:
+            new_track['height'] = height
 
         self.viewconf = new_track
         self.position = position
@@ -86,7 +88,7 @@ class HiGlassView:
 
 
     def add_track(self, track_type, position=None, server=None, 
-            tileset_uuid=None, options={}):
+            tileset_uuid=None, height=None, options={}):
         '''
         Add a track to a position.
         
@@ -104,7 +106,7 @@ class HiGlassView:
             The uuid of the track on the server
         '''
         new_track = HiGlassTrack(track_type, position, 
-                server, tileset_uuid, options)
+                server, tileset_uuid, options=options, height=height)
 
         self.tracks += [new_track]
 
