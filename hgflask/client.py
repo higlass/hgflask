@@ -68,6 +68,7 @@ class HiGlassView:
             uid = slugid.nice().decode('utf8')
 
         self.tracks = []
+        self.uid = uid
 
         self.viewconf = {
                 'uid': uid,
@@ -162,14 +163,14 @@ class HiGlassConfig:
         y: int
             The position of this view on the grid
         '''
-        view = HiGlassView(uid, width, height, x, y)
+        new_view = HiGlassView(uid, width, height, x, y)
 
         for view in self.views:
-            if view['uid'] == uid:
+            if view.uid == uid:
                 raise ValueError("View with this uid already exists")
 
-        self.views += [view]
-        return view
+        self.views += [new_view]
+        return new_view
     
     def location_lock(self, view_uid1, view_uid2):
         '''
@@ -184,5 +185,5 @@ class HiGlassConfig:
             viewconf['views'] += [view.to_json()]
 
         return json.dumps(
-            viewconf
+            viewconf, indent=2
         )
