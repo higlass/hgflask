@@ -270,7 +270,7 @@ def get_open_port():
         return port
 
 class RunningServer():
-    def __init__(self, port, process):
+    def __init__(self, port, process, host='localhost'):
         '''
         Maintain a reference to a running higlass server
 
@@ -281,6 +281,7 @@ class RunningServer():
         process: Popen.process
             The process running the server
         '''
+        self.host = 'localhost'
         self.port = port
         self.process = process
 
@@ -321,6 +322,10 @@ class RunningServer():
         Stop this server so that the calling process can exit
         '''
         self.process.terminate()
+
+    @property
+    def api_address(self):
+        return 'http://{}:{}/api/v1'.format(self.host, self.port)
 
 '''
 Keep track of the server processes that have been started.
