@@ -17,11 +17,10 @@ import hgtiles.files as hgfi
 
 import math
 import numpy as np
+import os.path as op
 import pandas as pd
 import sys
 import time
-
-from .tilesets.bigwig_tiles import get_quadtree_depth, get_chromsizes, get_bigwig_tile
 
 from flask import Flask
 from flask import request, jsonify
@@ -359,13 +358,21 @@ def start(tilesets, port=None, filetype_handlers={}):
 
     global processes
 
-    print("processes:", processes)
     to_delete = []
 
     # simmple integrity check
     for tileset in tilesets:
-        if 'filepath' not in tileset and tileset['filetype'] not in filetype_handlers:
-            print("WARNING: tileset missing filepath or filetype handler", tileset)
+        try:
+            if 'filepath' not in tileset and tileset['filetype'] not in filetype_handlers:
+                print("WARNING: tileset missing filepath or filetype handler", tileset)
+        except TypeError:
+            print("ERROR: Are you sure the list of tilesets is a list?")
+            raise
+
+        print('filepath', tileset['filepath'])
+        
+        if 'filepath' in tileset:
+            tileset['filepath'] = op.expanduser(tileset['filepath'])
 
 
     for puid in processes:
@@ -405,4 +412,3 @@ def start(tilesets, port=None, filetype_handlers={}):
             pass
 
     return RunningServer(port, processes[uuid])
-    print("processes", processes)
