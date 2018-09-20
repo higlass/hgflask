@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import base64
-import bbi
-import cooler
 import cytoolz as toolz
 import functools as ft
 import json
@@ -15,10 +12,7 @@ import hgtiles.hitile as hghi
 import hgtiles.bigwig as hgbi
 import hgtiles.files as hgfi
 
-import math
-import numpy as np
 import os.path as op
-import pandas as pd
 import sys
 import time
 

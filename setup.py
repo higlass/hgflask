@@ -1,15 +1,9 @@
 from setuptools import setup, find_packages
 
 install_requires = [
-        'cython',
-        'numpy',
-        'pysam',
         'requests',
-        'h5py',
-        'pandas',
         'slugid',
         'sortedcontainers',
-        'git+https://github.com/nvictus/pybbi.git',
         'nose',
         'Click',
         'flask',
@@ -20,7 +14,7 @@ setup(
     name='hgflask',
     version='0.1.1',
     description='Portable higlass tile server',
-    author='Nezar Abdennur',
+    author='Nezar Abdennur, Peter Kerpedjiev',
     author_email='nabdennur@gmail.com',
     url='',
     packages=['hgflask'],
