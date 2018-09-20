@@ -9,6 +9,7 @@ install_requires = [
         'pandas',
         'slugid',
         'sortedcontainers',
+        'git+https://github.com/nvictus/pybbi.git',
         'nose',
         'Click',
         'flask',
