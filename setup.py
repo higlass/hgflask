@@ -4,6 +4,7 @@ install_requires = [
         'requests',
         'slugid',
         'sortedcontainers',
+        'dask',
         'nose',
         'Click',
         'flask',
