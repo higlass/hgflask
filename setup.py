@@ -2,13 +2,17 @@ from setuptools import setup, find_packages
 
 install_requires = [
         'requests',
+        'diskcache',
         'slugid',
         'sortedcontainers',
-        'dask',
         'nose',
         'Click',
         'flask',
         'flask-cors',
+        'cytoolz',
+        'sh',
+        'cooler',
+        'fusepy',
         'hgtiles']
 
 setup(
@@ -19,5 +23,6 @@ setup(
     author_email='nabdennur@gmail.com',
     url='',
     packages=['hgflask'],
+    setup_requires=['flask'],
     install_requires=install_requires
 )
