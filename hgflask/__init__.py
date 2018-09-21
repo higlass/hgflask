@@ -5,6 +5,7 @@ import json
 import requests
 import slugid
 import multiprocessing as mp
+import sh
 
 import hgtiles.bed2ddb as hgb2
 import hgtiles.cooler as hgco
@@ -12,14 +13,18 @@ import hgtiles.hitile as hghi
 import hgtiles.bigwig as hgbi
 import hgtiles.files as hgfi
 
+import os
 import os.path as op
 import sys
+import multiprocessing as mp
 import time
 
 from flask import Flask
 from flask import request, jsonify
 #from flask_restful import reqparse, abort, Api, Resource
 from flask_cors import CORS
+
+from fuse import FUSE
 
 
 def create_app(tilesets, external_filetype_handlers=None):
@@ -141,7 +146,14 @@ def create_app(tilesets, external_filetype_handlers=None):
             None
         '''
         if 'filepath' in tileset_def:
-            return tileset_def['filepath']
+            filepath = tileset_def['filepath']
+            
+            if filepath[:7] == 'http://':
+                filepath = http_directory + '//' + filepath[5:] + ".."
+            if filepath[:8] == 'https://':
+                filepath = https_directory + '//' + filepath[6:] + ".."
+            
+            return filepath
 
         return None
 
@@ -173,12 +185,7 @@ def create_app(tilesets, external_filetype_handlers=None):
             if ts is not None:
                 info[uuid] = ts.copy()
 
-                # see if there's a filepath provided
-                if 'filepath' in info[uuid]:
-                    filepath = info[uuid]['filepath']
-                else:
-                    filepath = None
-
+                filepath = get_filepath(info[uuid])
                 filetype = get_filetype(info[uuid])
                 print('filetype:', filetype)
 
@@ -315,6 +322,16 @@ class RunningServer():
         '''
         Stop this server so that the calling process can exit
         '''
+        try:
+            sh.umount(http_directory)
+        except Exception as ex:
+            pass
+
+        try:
+            sh.umount(https_directory)
+        except Exception as ex:
+            pass
+
         self.process.terminate()
 
     @property
@@ -327,7 +344,84 @@ So that when someone says 'start', the old ones are terminated
 '''
 processes = {}
 
-def start(tilesets, port=None, filetype_handlers={}):
+http_directory = '/tmp/hgflask/http'
+https_directory = '/tmp/hgflask/https'
+diskcache_directory = '/tmp/hgflask/dc'
+
+def setup_fuse(tmp_dir):
+    '''
+    Set up filesystem in user space for http and https 
+    so that we can retrieve tiles from remote sources.
+    
+    Parameters 
+    ----------
+    tmp_dir: string 
+        The temporary directory where to create the 
+        http and https directories 
+    '''
+    import hgflask.httpfs as hht
+
+    global processes
+    global http_directory 
+    global https_directory
+
+    http_directory = op.join(tmp_dir, 'http')
+    https_directory = op.join(tmp_dir, 'https')
+    diskcache_directory = op.join(tmp_dir, 'dc')
+
+    if not op.exists(http_directory):
+        os.makedirs(http_directory)
+    if not op.exists(https_directory):
+        os.makedirs(https_directory)
+    if not op.exists(diskcache_directory):
+        os.makedirs(diskcache_directory)
+
+    try:
+        sh.umount(http_directory)
+    except Exception as ex:
+        pass
+
+    try:
+        sh.umount(https_directory)
+    except Exception as ex:
+        pass
+
+    disk_cache_size = 2**25
+    disk_cache_dir = diskcache_directory
+    lru_capacity = 400
+    print("diskcache_directory", diskcache_directory, op.exists(diskcache_directory))
+
+    def start_fuse(directory):
+        print("starting fuse")
+        fuse = FUSE(
+            hht.HttpFs('http',
+                   disk_cache_size=disk_cache_size,
+                   disk_cache_dir=diskcache_directory,
+                   lru_capacity=lru_capacity,
+                ), 
+            directory,
+            foreground=False
+        )
+
+    thread = mp.Process(target = start_fuse, args=[http_directory])
+    thread.start()
+    thread.join()
+    # start_fuse(http_directory)
+
+    '''
+    fuse = FUSE(
+        HttpFs('https',
+               disk_cache_size=disk_cache_size,
+               disk_cache_dir=disk_cache_dir,
+               lru_capacity=lru_capacity,
+            ), 
+        https_directory,
+        foreground=False
+    )
+    '''
+
+
+def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
     '''
     Start the hgflask server.
 
@@ -354,9 +448,7 @@ def start(tilesets, port=None, filetype_handlers={}):
         A dictionary of handlers for filetypes not supported out of the
         box
     '''
-
-    global processes
-
+    fuse = setup_fuse(tmp_dir)
     to_delete = []
 
     # simmple integrity check
@@ -409,5 +501,6 @@ def start(tilesets, port=None, filetype_handlers={}):
             print('sleeping')
             time.sleep(.2)
             pass
+    print("returning")
 
     return RunningServer(port, processes[uuid])

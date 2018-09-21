@@ -58,6 +58,7 @@ class HttpFs(LoggingMixIn, Operations):
         self.cleanup_thread = self._generate_cleanup_thread(start=False)
         self.lru_cache = LRUCache(capacity=lru_capacity)
 
+        print('dc_dir', disk_cache_dir, disk_cache_size)
         self.disk_cache = dc.Cache(disk_cache_dir, disk_cache_size)
 
         self.lru_hits = 0
@@ -70,7 +71,7 @@ class HttpFs(LoggingMixIn, Operations):
         self.cleanup_thread.start()
 
     def getattr(self, path, fh=None):
-        #logging.info("attr path: {}".format(path))
+        logging.info("attr path: {}".format(path))
         
         if path in self.files:
             return self.files[path]['attr']
@@ -78,10 +79,10 @@ class HttpFs(LoggingMixIn, Operations):
         elif path.endswith('..'):
             url = '{}:/{}'.format(self.schema, path[:-2])
             
-            # logging.info("attr url: {}".format(url))
+            logging.info("attr url: {}".format(url))
             head = requests.head(url, allow_redirects=True)
-            # logging.info("head: {}".format(head.headers))
-            # logging.info("status_code: {}".format(head.status_code))
+            logging.info("head: {}".format(head.headers))
+            logging.info("status_code: {}".format(head.status_code))
 
             attr = dict(
                 st_mode=(S_IFREG | 0o644), 
@@ -100,6 +101,7 @@ class HttpFs(LoggingMixIn, Operations):
             return dict(st_mode=(S_IFDIR | 0o555), st_nlink=2)
 
     def read(self, path, size, offset, fh):
+        print("read", offset, size)
         #logging.info("read path: {}".format(path))
         if path in self.files:
             url = '{}:/{}'.format(self.schema, path[:-2])
@@ -206,6 +208,7 @@ class HttpFs(LoggingMixIn, Operations):
                 headers = {
                     'Range': 'bytes={}-{}'.format(block_start, block_start + BLOCK_SIZE - 1)
                 }
+                print('sending request:', headers['Range'])
                 r = requests.get(url, headers=headers)
                 logging.info(r)
                 block_data = r.content
