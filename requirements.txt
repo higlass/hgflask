@@ -7,3 +7,4 @@ hgtiles
 cooler
 clodius
 sh
+fusepy
