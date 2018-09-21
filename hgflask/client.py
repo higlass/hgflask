@@ -88,13 +88,14 @@ class HiGlassView:
             }
 
 
-    def add_track(self, track_type, position=None, server=None, 
-            tileset_uuid=None, height=None, options={}):
+    def add_track(self, tileset_uuid, track_type, position=None, server=None, height=None, options={}):
         '''
         Add a track to a position.
         
         Parameters
         ----------
+        tileset_uuid:
+            The uuid of the track on the server
         view_uid: string
             The identifier for the view to add this track to
         track_type: string
@@ -103,9 +104,9 @@ class HiGlassView:
             One of 'top', 'bottom', 'center', 'left', 'right'
         server: string
             The server storing the data for this track
-        tileset_uuid:
-            The uuid of the track on the server
         '''
+        print("track_type:", track_type)
+
         new_track = HiGlassTrack(track_type, position, 
                 server, tileset_uuid, options=options, height=height)
 
