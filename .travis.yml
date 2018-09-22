@@ -1,5 +1,9 @@
 # Based on http://lmjohns3.com/2015/06/using-travis-ci-with-miniconda-scipy-and-nose.html
 # Tweaked to specify versions on everything for stability.
+
+sudo: required
+dist: trusty
+
 language: python
 python:
   - "3.6"
@@ -14,6 +18,10 @@ addons:
     - gfortran
 
 before_install:
+  - sudo apt-get install -qq pkg-config fuse
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
   - wget http://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
