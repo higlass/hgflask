@@ -8,3 +8,4 @@ cooler
 clodius
 sh
 fusepy
+diskcache
