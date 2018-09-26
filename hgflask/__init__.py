@@ -172,6 +172,9 @@ def create_app(tilesets, external_filetype_handlers=None):
         if 'filetype' in tileset_def:
             return tileset_def['filetype']
 
+        if 'filepath' not in tileset_def:
+            return None
+
         return hgfi.infer_filetype(tileset_def['filepath'])
 
     @app.route('/api/v1/tileset_info/', methods=['GET'])
@@ -183,11 +186,17 @@ def create_app(tilesets, external_filetype_handlers=None):
             ts = next((ts for ts in TILESETS if ts['uuid'] == uuid), None)
             
             if ts is not None:
-                info[uuid] = ts.copy()
+                if 'handlers' in ts:
+                    if 'tileset_info' not in ts['handlers']:
+                        print("Missing tileset_info handler", ts, file=sys.stderr)
+                    tsinfo = ts['handlers']['tileset_info']()
+
+                    #print('tsinfo', tsinfo)
+                    info[uuid] = tsinfo
+                    continue
 
                 filepath = get_filepath(info[uuid])
                 filetype = get_filetype(info[uuid])
-                print('filetype:', filetype)
 
                 if filetype in external_filetype_handlers:
                     handler = external_filetype_handlers[filetype]['tileset_info']
@@ -202,7 +211,7 @@ def create_app(tilesets, external_filetype_handlers=None):
                 elif filetype == 'hitile':
                     info[uuid].update(hghi.tileset_info(filepath))
                 elif filetype == 'bedarcsdb':
-                    tiles.extend(hgb2.get_2d_tileset_info(filepath))
+                    info[uuid].update(hgb2.get_2d_tileset_info(filepath))
                 else:
                     print("Unknown filetype:", info[uuid]['filetype'], 
                             file=sys.stderr)
@@ -210,6 +219,8 @@ def create_app(tilesets, external_filetype_handlers=None):
                 info[uuid] = {
                     'error': 'No such tileset with uid: {}'.format(uuid)
                 }
+
+        print("info:", info)
 
         return jsonify(info)
 
@@ -228,8 +239,15 @@ def create_app(tilesets, external_filetype_handlers=None):
         for uuid, tids in uuids_to_tids.items():
             ts = next((ts for ts in TILESETS if ts['uuid'] == uuid), None)
             if ts is not None:
+                if 'handlers' in ts:
+                    if 'tiles' not in ts['handlers']:
+                        print("Missing tiles handler", ts, file=sys.stderr)
+                    tiles.extend(ts['handlers']['tiles'](tids))
+                    continue
+
                 filetype = get_filetype(ts)
                 filepath = get_filepath(ts)
+
 
                 if filetype in external_filetype_handlers:
                     handler = external_filetype_handlers[filetype]['tiles']
@@ -322,15 +340,7 @@ class RunningServer():
         '''
         Stop this server so that the calling process can exit
         '''
-        try:
-            sh.umount(http_directory)
-        except Exception as ex:
-            pass
-
-        try:
-            sh.umount(https_directory)
-        except Exception as ex:
-            pass
+        # unsetup_fuse()
 
         self.process.terminate()
 
@@ -347,6 +357,21 @@ processes = {}
 http_directory = '/tmp/hgflask/http'
 https_directory = '/tmp/hgflask/https'
 diskcache_directory = '/tmp/hgflask/dc'
+
+def unsetup_fuse():
+    global http_directory 
+    global https_directory
+
+    try:
+        sh.umount(http_directory)
+    except Exception as ex:
+        pass
+
+    try:
+        sh.umount(https_directory)
+    except Exception as ex:
+        pass
+
 
 def setup_fuse(tmp_dir):
     '''
@@ -448,19 +473,19 @@ def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
         A dictionary of handlers for filetypes not supported out of the
         box
     '''
-    fuse = setup_fuse(tmp_dir)
+    # fuse = setup_fuse(tmp_dir)
     to_delete = []
 
     # simmple integrity check
     for tileset in tilesets:
         try:
-            if 'filepath' not in tileset and tileset['filetype'] not in filetype_handlers:
+            if ('filepath' not in tileset 
+                    and ('filetype' in tileset and tileset['filetype'] not in filetype_handlers)
+                    and 'handlers' not in tileset):
                 print("WARNING: tileset missing filepath or filetype handler", tileset)
         except TypeError:
             print("ERROR: Are you sure the list of tilesets is a list?")
             raise
-
-        print('filepath', tileset['filepath'])
         
         if 'filepath' in tileset:
             tileset['filepath'] = op.expanduser(tileset['filepath'])
@@ -495,7 +520,8 @@ def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
     connected = False
     while not connected:
         try:
-            ret = requests.get('http://localhost:{}/api/v1/tileset_info/?d=x'.format(port))
+            ret = requests.get('http://localhost:{}/api/v1/tileset_info/?d=a'.format(port))
+            print('ret:', ret.status_code, ret.content)
             connected = True
         except Exception as err:
             print('sleeping')

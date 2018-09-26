@@ -105,8 +105,6 @@ class HiGlassView:
         server: string
             The server storing the data for this track
         '''
-        print("track_type:", track_type)
-
         new_track = HiGlassTrack(track_type, position, 
                 server, tileset_uuid, options=options, height=height)
 
