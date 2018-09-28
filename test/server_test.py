@@ -31,6 +31,6 @@ def test_server_start():
     assert('max_pos' in server.tileset_info('b'))
     assert('dense' in server.tiles('b', 0, 0))
 
-    print('tileset_info', server.tileset_info('c'))
+    # print('tileset_info', server.tileset_info('c'))
     ## stop the server so that the program can exit
     server.stop()

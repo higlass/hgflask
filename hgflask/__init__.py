@@ -195,6 +195,8 @@ def create_app(tilesets, external_filetype_handlers=None):
                     info[uuid] = tsinfo
                     continue
 
+                info[uuid] = ts.copy()
+
                 filepath = get_filepath(info[uuid])
                 filetype = get_filetype(info[uuid])
 

@@ -42,7 +42,9 @@ class HiGlassView:
     def __init__(self, uid=None, 
                  width=12, 
                  height=6,
-                 x=0, y=0):
+                 x=0, y=0, 
+                 initialXDomain=None, 
+                 initialYDomain=None):
         '''
         Add a new view
         
@@ -63,6 +65,10 @@ class HiGlassView:
             The position of this view on the grid
         y: int
             The position of this view on the grid
+        initialXDoamin: [int, int]
+            The initial x range of the view
+        initialYDomain: [int, int]
+            The initial y range of the view
         '''
         if uid is None:
             uid = slugid.nice().decode('utf8')
@@ -86,6 +92,11 @@ class HiGlassView:
                     "y": y
                   },
             }
+
+        if initialXDomain is not None:
+            self.viewconf['initialXDomain'] = initialXDomain
+        if initialYDomain is not None:
+            self.viewconf['initialYDomain'] = initialYDomain
 
 
     def add_track(self, tileset_uuid, track_type, position=None, server=None, height=None, options={}):
@@ -140,7 +151,9 @@ class HiGlassConfig:
     def add_view(self, uid=None, 
                  width=12, 
                  height=6,
-                 x=0, y=0):
+                 x=0, y=0, 
+                 initialXDomain=None, 
+                 initialYDomain=None):
         '''
         Add a new view
         
@@ -161,8 +174,14 @@ class HiGlassConfig:
             The position of this view on the grid
         y: int
             The position of this view on the grid
+        initialXDoamin: [int, int]
+            The initial x range of the view
+        initialYDomain: [int, int]
+            The initial y range of the view
         '''
-        new_view = HiGlassView(uid, width, height, x, y)
+        new_view = HiGlassView(uid, width, height, x, y, 
+                initialXDomain, 
+                initialYDomain)
 
         for view in self.views:
             if view.uid == uid:
