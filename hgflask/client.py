@@ -3,7 +3,7 @@ import slugid
 
 class HiGlassTrack:
     def __init__(self, track_type, position, server=None, 
-            tileset_uuid=None, height=None, options={}):
+            tileset_uuid=None, height=None, width=None, options={}):
         '''
         Add a track to a position.
         
@@ -31,6 +31,8 @@ class HiGlassTrack:
             new_track['tilesetUid'] = tileset_uuid
         if height is not None:
             new_track['height'] = height
+        if width is not None:
+            new_track['width'] = width
 
         self.viewconf = new_track
         self.position = position
@@ -99,7 +101,8 @@ class HiGlassView:
             self.viewconf['initialYDomain'] = initialYDomain
 
 
-    def add_track(self, tileset_uuid, track_type, position=None, server=None, height=None, options={}):
+    def add_track(self, tileset_uuid, track_type, position=None, server=None, 
+            height=None, width=None, options={}):
         '''
         Add a track to a position.
         
@@ -113,17 +116,22 @@ class HiGlassView:
             The type of track to add (e.g. "heatmap", "line")
         position: string
             One of 'top', 'bottom', 'center', 'left', 'right'
+        height: int  
+            The height of the track, if it is a top, bottom or a center track
+        width: int 
+            The width of the track, if it is a left, right or a center track
         server: string
             The server storing the data for this track
         '''
         new_track = HiGlassTrack(track_type, position, 
-                server, tileset_uuid, options=options, height=height)
+                server, tileset_uuid, options=options, 
+                height=height, width=width)
 
         self.tracks += [new_track]
 
     def to_json(self):
         '''
-        Convert the existing configuration to a JSON representation.
+        Convert the existing track to a JSON representation.
         '''
         viewconf = json.loads(json.dumps(self.viewconf))
 
@@ -157,12 +165,8 @@ class HiGlassConfig:
         '''
         Add a new view
         
-        Parameters:
-        -----------
-        uid: The uid of the view
-        
-        Returns:
-        --------
+        Parameters
+        ----------
         uid: string
             The uid of new view
         width: int

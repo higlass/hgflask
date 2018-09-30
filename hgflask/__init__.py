@@ -1,3 +1,5 @@
+__all__ = ['start']
+
 # -*- coding: utf-8 -*-
 import cytoolz as toolz
 import functools as ft
@@ -450,23 +452,26 @@ def setup_fuse(tmp_dir):
 
 def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
     '''
-    Start the hgflask server.
+    Start the hgflask server. If a port is not specified, an open port 
+    will be automatically selected.
 
     Parameters
     ----------
     tilesets: object
         The list of tilesets to serve. For example:
-        TILESETS = [{  
-            'uuid': "abc",
-            'filetype': "grid_1000",
-            'datatype': "matrix",
-        },
-        {  
-            'uuid': "abc1",
-            'filetype': "grid_8000",
-            'datatype': "matrix",
-        },
-        ]
+
+        .. code-block:: python
+
+            TILESETS = [{  
+                'uuid': "abc",
+                'filetype': "grid_1000",
+                'datatype': "matrix",
+            },
+            {  
+                'uuid': "abc1",
+                'filetype': "grid_8000",
+                'datatype': "matrix",
+            }]
     port: int
         The port to start this server on. If it is None, a port
         will automatically be assigned.
@@ -532,3 +537,4 @@ def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
     print("returning")
 
     return RunningServer(port, processes[uuid])
+
