@@ -517,6 +517,7 @@ def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
     uuid = slugid.nice().decode('utf8')
     processes[uuid] = mp.Process(
         target=ft.partial(app.run, 
+                          threaded=True,
                           debug=True, 
                           port=port, 
                           host='0.0.0.0',
