@@ -2,7 +2,7 @@ cytoolz
 flask
 flask_cors
 slugid
-hgtiles
+hgtiles>=0.2.15
 -e git+https://github.com/nvictus/pybbi.git@v0.1.1#egg=pybbi
 cooler
 clodius
