@@ -29,10 +29,23 @@ from flask_cors import CORS
 from fuse import FUSE
 
 
-def create_app(tilesets, external_filetype_handlers=None):
+def create_app(tilesets):
     app = Flask(__name__)
     CORS(app)
 
+    TILESETS = tilesets
+
+    #############
+    ### VIEWS ###
+    #############
+
+
+    @app.route('/api/v1/')
+    def hello():
+        return("Hello World!")
+
+
+    '''
     CHROMSIZES = {
         'hg19': {
             "chr1": {"size": 249250621}, 
@@ -63,56 +76,64 @@ def create_app(tilesets, external_filetype_handlers=None):
         },
     }
 
-    TILESETS = tilesets
-
-    #############
-    ### VIEWS ###
-    #############
-
-
-    @app.route('/api/v1/')
-    def hello():
-        return("Hello World!")
-
-
     @app.route('/api/v1/available-chrom-sizes/', methods=['GET'])
     def available_chrom_sizes():
         return jsonify({
             "count": len(CHROMSIZES), 
             "results": {i: CHROMSIZES[i] for i in range(len(CHROMSIZES))}
         })
+    '''
 
 
     @app.route('/api/v1/chrom-sizes/', methods=['GET'])
     def chrom_sizes():
         uuid = request.args.get('id', None)
-        res_type = request.args.get('type', 'json')
+        res_type = request.args.get('type', 'tsv')
         incl_cum = request.args.get('cum', False)
-        
-        if uuid is None:
-            return jsonify(CHROMSIZES)
 
-        try:
-            data = CHROMSIZES[uuid]
-        except KeyError:
+        ts = next((ts for ts in TILESETS if ts.uuid == uuid), None)
+
+        if ts is None:
             return jsonify({"error": "Not found"}), 404
-
+        
+        data = ts.chromsizes()
+        
+        new_data = []
+        
         if incl_cum:
             cum = 0
+            for (chrom, size) in data:
+                new_data += [(chrom, size, cum)]
+                cum += size 
+
             for chrom in data.keys():   # dictionaries in py3.6+ are ordered!
                 data[chrom]['offset'] = cum
                 cum += data[chrom]['size']
 
         if res_type == 'json':
-            return jsonify(data)
-
-        elif res_type == 'csv':
+            # should return
+            # { uuid: {
+            #   'chr1': {'size': 2343, 'offset': 0},
+            #
             if incl_cum:
-               return '\n'.join('{}\t{}\t{}'.format(chrom, row['size'], row['offset'])
-                    for chrom, row in data.items())
+                j = {
+                        ts.uuid: dict([(chrom, { 'size': size, 'offset': offset }) for 
+                            (chrom, size, offset) in data])
+                    }
             else:
-                return '\n'.join('{}\t{}'.format(chrom, row['size'])
-                    for chrom, row in data.items())
+                j = {
+                        ts.uuid: dict([(chrom, { 'size': size }) for 
+                            (chrom, size) in data])
+                    }
+            return jsonify(j)
+
+        elif res_type == 'tsv':
+            if incl_cum:
+               return '\n'.join('{}\t{}\t{}'.format(chrom, size, cum)
+                       for chrom, size, cum in data)
+            else:
+                return '\n'.join('{}\t{}'.format(chrom, size)
+                    for chrom, size in data)
 
         else:
             return jsonify({"error": "Unknown response type"}), 500
@@ -185,46 +206,14 @@ def create_app(tilesets, external_filetype_handlers=None):
 
         info = {}
         for uuid in uuids:
-            ts = next((ts for ts in TILESETS if ts['uuid'] == uuid), None)
+            ts = next((ts for ts in TILESETS if ts.uuid == uuid), None)
             
             if ts is not None:
-                if 'handlers' in ts:
-                    if 'tileset_info' not in ts['handlers']:
-                        print("Missing tileset_info handler", ts, file=sys.stderr)
-                    tsinfo = ts['handlers']['tileset_info']()
-
-                    #print('tsinfo', tsinfo)
-                    info[uuid] = tsinfo
-                    continue
-
-                info[uuid] = ts.copy()
-
-                filepath = get_filepath(info[uuid])
-                filetype = get_filetype(info[uuid])
-
-                if filetype in external_filetype_handlers:
-                    handler = external_filetype_handlers[filetype]['tileset_info']
-                    if filepath is not None:
-                        info[uuid].update(handler(filepath))
-                    else:
-                        info[uuid].update(handler())
-                elif filetype == 'bigwig':
-                    info[uuid].update(hgbi.tileset_info(filepath))                
-                elif filetype == 'cooler':
-                    info[uuid].update(hgco.tileset_info(filepath))
-                elif filetype == 'hitile':
-                    info[uuid].update(hghi.tileset_info(filepath))
-                elif filetype == 'bedarcsdb':
-                    info[uuid].update(hgb2.get_2d_tileset_info(filepath))
-                else:
-                    print("Unknown filetype:", info[uuid]['filetype'], 
-                            file=sys.stderr)
+                info[uuid] = ts.tileset_info()
             else:
                 info[uuid] = {
                     'error': 'No such tileset with uid: {}'.format(uuid)
                 }
-
-        print("info:", info)
 
         return jsonify(info)
 
@@ -241,36 +230,8 @@ def create_app(tilesets, external_filetype_handlers=None):
         
         tiles = []
         for uuid, tids in uuids_to_tids.items():
-            ts = next((ts for ts in TILESETS if ts['uuid'] == uuid), None)
-            if ts is not None:
-                if 'handlers' in ts:
-                    if 'tiles' not in ts['handlers']:
-                        print("Missing tiles handler", ts, file=sys.stderr)
-                    tiles.extend(ts['handlers']['tiles'](tids))
-                    continue
-
-                filetype = get_filetype(ts)
-                filepath = get_filepath(ts)
-
-
-                if filetype in external_filetype_handlers:
-                    handler = external_filetype_handlers[filetype]['tiles']
-                    if filepath is not None:
-                        tiles.extend(handler(filepath, tids))
-                    else:
-                        tiles.extend(handler(tids))
-                elif filetype == 'bigwig':
-                    tiles.extend(hgbi.tiles(filepath, tids))
-                elif filetype == 'cooler':
-                    tiles.extend(hgco.tiles(filepath, tids))
-                elif filetype == 'hitile':
-                    tiles.extend(hghi.tiles(filepath, tids))
-                elif filetype == 'bedarcsdb':
-                    print('tids:', tids)
-                    tiles.extend(hgb2.get_1D_tiles(filepath, tids))
-                else:
-                    print("Unknown filetype:", filetype, file=sys.stderr)
-
+            ts = next((ts for ts in TILESETS if ts.uuid == uuid), None)
+            tiles.extend(ts.tiles(tids))
         data = {tid: tval for tid, tval in tiles}
         return jsonify(data)
 
@@ -339,6 +300,20 @@ class RunningServer():
 
         content = json.loads(req.content)
         return content[tile_id]
+
+    def chromsizes(self, uid):
+        '''
+        Return the chromosome sizes from the given filename
+        '''
+        url = 'http://localhost:{port}/api/v1/chrom-sizes/?id={uid}'.format(
+                port=self.port,
+                uid=uid)
+
+        req = requests.get(url)
+        if req.status_code != 200:
+            raise Exception('Error fetching chromsizes:', req.content)
+
+        return req.content
 
     def stop(self):
         '''
@@ -450,7 +425,7 @@ def setup_fuse(tmp_dir):
     '''
 
 
-def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
+def start(tilesets, port=None, tmp_dir='/tmp/hgflask'):
     '''
     Start the hgflask server. If a port is not specified, an open port 
     will be automatically selected.
@@ -462,28 +437,24 @@ def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
 
         .. code-block:: python
 
-            TILESETS = [{  
-                'uuid': "abc",
-                'filetype': "grid_1000",
-                'datatype': "matrix",
-            },
-            {  
-                'uuid': "abc1",
-                'filetype': "grid_8000",
-                'datatype': "matrix",
-            }]
+            import hgflask.tilesets as hfti
+
+            tilesets = [
+                hfti.cooler('mycooler.cool',
+                hfti.bigwig('mybigwig.bigWig',
+            ]
     port: int
         The port to start this server on. If it is None, a port
         will automatically be assigned.
-
-    filetype_handlers: dict
-        A dictionary of handlers for filetypes not supported out of the
-        box
+    tmp_dir: string 
+        A temporary directory to be used for mounting http files 
+        (experimental)
     '''
     # fuse = setup_fuse(tmp_dir)
     to_delete = []
 
     # simmple integrity check
+    """
     for tileset in tilesets:
         try:
             if ('filepath' not in tileset 
@@ -496,6 +467,7 @@ def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
         
         if 'filepath' in tileset:
             tileset['filepath'] = op.expanduser(tileset['filepath'])
+    """
 
 
     for puid in processes:
@@ -508,9 +480,9 @@ def start(tilesets, port=None, filetype_handlers={}, tmp_dir='/tmp/hgflask'):
 
     # we're going to assign a uuid to each server process so that if anything
     # goes wrong, the variable referencing the process doesn't get lost
-    app = create_app(tilesets=tilesets, external_filetype_handlers=filetype_handlers)# we're going to assign a uuid to each server process so that if anything
+    app = create_app(tilesets=tilesets)# we're going to assign a uuid to each server process so that if anything
     # goes wrong, the variable referencing the process doesn't get lost
-    app = create_app(tilesets=tilesets, external_filetype_handlers=filetype_handlers)
+    app = create_app(tilesets=tilesets)
 
     port=get_open_port() if port is None else port
 

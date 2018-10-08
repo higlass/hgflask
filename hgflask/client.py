@@ -1,32 +1,36 @@
 import json
 import slugid
 
-class HiGlassTrack:
-    def __init__(self, track_type, position, server=None, 
-            tileset_uuid=None, height=None, width=None, options={}):
+class Track:
+    def __init__(self, track_type, position, tileset_uuid=None, 
+            api_url=None, height=None, width=None, options={}):
         '''
         Add a track to a position.
         
         Parameters
         ----------
-        view_uid: string
-            The identifier for the view to add this track to
         track_type: string
             The type of track to add (e.g. "heatmap", "line")
         position: string
             One of 'top', 'bottom', 'center', 'left', 'right'
-        server: string
-            The server storing the data for this track
         tileset_uuid:
-            The uuid of the track on the server
+            The of uuid of the tileset being displayed in this track
+        api_url: string
+            The server storing the data for this track
+        height: int 
+            The height of the track (in pixels)
+        width: int 
+            The width of the track (in pixels)
+        options: {} 
+            The options to pass onto the track
         '''
         new_track = {
             'type': track_type,
             'options': options
         }
 
-        if server is not None:
-            new_track['server'] = server
+        if api_url is not None:
+            new_track['server'] = api_url
         if tileset_uuid is not None:
             new_track['tilesetUid'] = tileset_uuid
         if height is not None:
@@ -40,42 +44,41 @@ class HiGlassTrack:
     def to_json(self):
         return self.viewconf
 
-class HiGlassView:
-    def __init__(self, uid=None, 
+class View:
+    def __init__(self, tracks=[],
+                 x=0, y=0, 
                  width=12, 
                  height=6,
-                 x=0, y=0, 
                  initialXDomain=None, 
-                 initialYDomain=None):
+                 initialYDomain=None,
+                 uid=None):
         '''
         Add a new view
         
-        Parameters:
-        -----------
-        uid: The uid of the view
-        
-        Returns:
+        Parameters
         --------
-        uid: string
-            The uid of new view
+        tracks: []
+            A list of Tracks to include in this view
+        x: int
+            The position of this view on the grid
+        y: int
+            The position of this view on the grid
         width: int
             The width of this of view on a 12 unit grid
         height: int
             The height of the this view. The height is proportional
             to the height of all the views present.
-        x: int
-            The position of this view on the grid
-        y: int
-            The position of this view on the grid
         initialXDoamin: [int, int]
             The initial x range of the view
         initialYDomain: [int, int]
             The initial y range of the view
+        uid: string
+            The uid of new view
         '''
         if uid is None:
             uid = slugid.nice().decode('utf8')
 
-        self.tracks = []
+        self.tracks = tracks
         self.uid = uid
 
         self.viewconf = {
@@ -101,30 +104,28 @@ class HiGlassView:
             self.viewconf['initialYDomain'] = initialYDomain
 
 
-    def add_track(self, tileset_uuid, track_type, position=None, server=None, 
-            height=None, width=None, options={}):
+    def add_track(self, track_type, position=None, tileset=None,
+            server=None, height=None, width=None, options={}):
         '''
         Add a track to a position.
         
         Parameters
         ----------
-        tileset_uuid:
-            The uuid of the track on the server
-        view_uid: string
-            The identifier for the view to add this track to
         track_type: string
             The type of track to add (e.g. "heatmap", "line")
         position: string
             One of 'top', 'bottom', 'center', 'left', 'right'
+        tileset: hgflask.tilesets.Tileset
+            The tileset to be plotted in this track
+        server: string
+            The server serving this track
         height: int  
             The height of the track, if it is a top, bottom or a center track
         width: int 
             The width of the track, if it is a left, right or a center track
-        server: string
-            The server storing the data for this track
         '''
-        new_track = HiGlassTrack(track_type, position, 
-                server, tileset_uuid, options=options, 
+        new_track = HiGlassTrack(plot, position, 
+                tileset, server, options=options, 
                 height=height, width=width)
 
         self.tracks += [new_track]
@@ -141,8 +142,8 @@ class HiGlassView:
         return viewconf
 
 
-class HiGlassConfig:
-    def __init__(self):
+class ViewConf:
+    def __init__(self, views=[]):
         self.viewconf = {
         'editable': True,
         'views': [],
@@ -152,7 +153,7 @@ class HiGlassConfig:
           "exportViewUrl": "http://higlass.io/api/v1/viewconfs"
         }
 
-        self.views = []
+        self.views = views
         
         pass
     
@@ -199,13 +200,12 @@ class HiGlassConfig:
         Add a location lock between two views.
         '''
         pass
-    
-    def to_json_string(self):
+
+    def to_json(self):
         viewconf = json.loads(json.dumps(self.viewconf))
 
         for view in self.views:
             viewconf['views'] += [view.to_json()]
 
-        return json.dumps(
-            viewconf, indent=2
-        )
+        return viewconf
+    

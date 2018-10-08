@@ -1,35 +1,41 @@
-import hgflask
-
-print("yo")
+import hgflask.server as hgse
+import hgflask.tilesets as hgti
+import hgtiles.chromsizes as hgch
 
 def test_server_start():
     '''
     Ensure that the server has started
     '''
-    tilesets = [
-        {
-            'filepath': 'data/Dixon2012-J1-NcoI-R1-filtered.100kb.multires.cool',
-            'uuid': 'a',
-        },
-        {
-            'filepath': 'data/wgEncodeCaltechRnaSeqHuvecR1x75dTh1014IlnaPlusSignalRep2.bigWig',
-            'uuid': 'b',
-        },
-        {
-            'filepath': 'http://hgdownload.cse.ucsc.edu/goldenpath/hg19/encodeDCC/wgEncodeSydhTfbs/wgEncodeSydhTfbsGm12878InputStdSig.bigWig',
-            'uuid': 'c',
-        },
 
-    ]
+    chromsizes = hgch.get_tsv_chromsizes('data/chromSizes_hg19_reordered.tsv')
+
+    ts = [
+            hgti.cooler('data/Dixon2012-J1-NcoI-R1-filtered.100kb.multires.cool'),
+            hgti.bigwig('data/wgEncodeCaltechRnaSeqHuvecR1x75dTh1014IlnaPlusSignalRep2.bigWig'),
+            hgti.bigwig('data/wgEncodeCaltechRnaSeqHuvecR1x75dTh1014IlnaPlusSignalRep2.bigWig',
+                chromsizes=chromsizes),
+            hgti.chromsizes('data/chromSizes_hg19_reordered.tsv')
+        ]
+
     print("hello")
-    server = hgflask.start(tilesets)
+    server = hgse.start(ts)
 
-    print("hi")
-    assert('min_pos' in server.tileset_info('a'))
-    assert('dense' in server.tiles('a', 0, 0, 0))
+    excepted = False
+    try:
+        cs = server.chromsizes('nottobefound')
+    except:
+        excepted = True
 
-    assert('max_pos' in server.tileset_info('b'))
-    assert('dense' in server.tiles('b', 0, 0))
+    assert(excepted == True)
+    
+    cs = server.chromsizes(ts[3].uuid).decode('utf8')
+    assert(cs.find('chrM') > -1)
+    
+    # assert('min_pos' in server.tileset_info(ts[0].uuid))
+    # assert('dense' in server.tiles(ts[0].uuid, 0, 0, 0))
+
+    # assert('max_pos' in server.tileset_info(ts[0].uuid))
+    # assert('dense' in server.tiles(ts[0].uuid, 0, 0))
 
     # print('tileset_info', server.tileset_info('c'))
     ## stop the server so that the program can exit
