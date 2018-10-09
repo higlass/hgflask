@@ -104,8 +104,7 @@ class View:
             self.viewconf['initialYDomain'] = initialYDomain
 
 
-    def add_track(self, track_type, position=None, tileset=None,
-            server=None, height=None, width=None, options={}):
+    def add_track(self, *args, **kwargs):
         '''
         Add a track to a position.
         
@@ -124,9 +123,7 @@ class View:
         width: int 
             The width of the track, if it is a left, right or a center track
         '''
-        new_track = HiGlassTrack(plot, position, 
-                tileset, server, options=options, 
-                height=height, width=width)
+        new_track = Track(*args, **kwargs)
 
         self.tracks += [new_track]
 
@@ -157,12 +154,7 @@ class ViewConf:
         
         pass
     
-    def add_view(self, uid=None, 
-                 width=12, 
-                 height=6,
-                 x=0, y=0, 
-                 initialXDomain=None, 
-                 initialYDomain=None):
+    def add_view(self, *args, **kwargs):
         '''
         Add a new view
         
@@ -184,9 +176,7 @@ class ViewConf:
         initialYDomain: [int, int]
             The initial y range of the view
         '''
-        new_view = HiGlassView(uid, width, height, x, y, 
-                initialXDomain, 
-                initialYDomain)
+        new_view = View(*args, **kwargs)
 
         for view in self.views:
             if view.uid == uid:
