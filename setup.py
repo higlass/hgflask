@@ -17,7 +17,7 @@ install_requires = [
 
 setup(
     name='hgflask',
-    version='0.1.1',
+    version='0.1.2',
     description='Portable higlass tile server',
     author='Nezar Abdennur, Peter Kerpedjiev',
     author_email='nabdennur@gmail.com',
