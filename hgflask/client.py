@@ -179,7 +179,7 @@ class ViewConf:
         new_view = View(*args, **kwargs)
 
         for view in self.views:
-            if view.uid == uid:
+            if view.uid == new_view.uid:
                 raise ValueError("View with this uid already exists")
 
         self.views += [new_view]
