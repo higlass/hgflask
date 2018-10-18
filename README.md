@@ -9,17 +9,13 @@ Lightweight Flask HiGlass Server for dynamic track generation in interactive Pyt
 Starting a hgflask server:
 
 ```
-import hgflask
-import hgflask.client as hfc
+import hgflask.tilesets as hfti
+import hgflask.server as hgse
 
-tilesets = [
-    {
-        'filepath': 'matrix.mcool',
-        'uuid': 'a',
-    }
-]
-server = hgflask.start(tilesets)
-print(server.tileset_info('a'))
+ts = hfti.cooler(
+    '../data/Dixon2012-J1-NcoI-R1-filtered.100kb.multires.cool')
+
+server = hgse.start(tilesets=[ts])
 ```
 #### Custom data handlers
 
@@ -27,28 +23,32 @@ If we would like to create our own custom data server, we have to register
 the `tileset_info` and `tiles` methods:
 
 ```
-handlers = {
-    'tileset_info': ft.partial(tileset_info, hg_points),
-    'tiles': ft.partial(tiles_wrapper, hg_points),
-}
+import math
+import numpy as np
+import itertools as it
+
+dim = 2000
+
+data = np.zeros((dim, dim))
+for x,y in it.product(range(dim), repeat=2):
+    data[x][y] = (-(y + 47) * math.sin(math.sqrt(abs(x / 2 + (y+47))))
+                             - x * math.sin(math.sqrt(abs(x - (y+47)))))
+                             
+import functools as ft
+import hgtiles.npmatrix as hgnp
+
+import hgflask.server as hgse
+import hgflask.tilesets as hfti
+
+ts = hfti.Tileset(
+    tileset_info=lambda: hgnp.tileset_info(data),
+    tiles=lambda tids: hgnp.tiles_wrapper(data, tids)
+)
 ```
 And call `hgflask.start` with this extra information:
 
 ```
-import hgflask
-import functools as ft
-
-handlers = {
-    'tileset_info': ft.partial(tileset_info, hg_points),
-    'tiles': ft.partial(tiles_wrapper, hg_points),
-}
-
-tilesets = [{
-    'filetype': 'scatter_points',
-    'uuid': 'a'
-}]
-
-server = hgflask.start(tilesets, external_filetype_handlers = handlers)
+server = hgse.start([ts])
 ```
 
 And then we can test the running server:
@@ -61,17 +61,21 @@ server.tileset_info('a')
 
 The `client` subpackage contains wrappers for HiGlass viewconfig management. Typically used with the [higlass-jupyter](https://github.com/reservoirgenomics/jupyter-higlass) widget.
 ```
-hgc = hfc.HiGlassConfig()
-view_uid = hgc.add_view()
-hgc.add_track(view_uid, 'heatmap', 'center', 
-        'http://localhost:{}/api/v1'.format(server.port), 
-        'a')
+import higlass_jupyter as hiju
+import hgflask.client as hgc
 
-import jupyter_higlass
-jupyter_higlass.HiGlassDisplay(viewconf=hgc.to_json_string())
+conf = hgc.ViewConf([
+    hgc.View([
+        hgc.Track(track_type='top-axis', position='top'),
+        hgc.Track(track_type='left-axis', position='left'),
+        hgc.Track(track_type='heatmap', position='center',
+                 tileset_uuid=ts.uuid,
+                  api_url=server.api_address,
+                  height=250,
+                 options={ 'valueScaleMax': 0.5 }),
+
+    ])
+])
+
+hiju.HiGlassDisplay(viewconf=conf.to_json())
 ```
-
-
-![image](https://user-images.githubusercontent.com/2143629/42402390-7e145f96-8148-11e8-8ba6-ae2246c5cc4e.png)
-
-
