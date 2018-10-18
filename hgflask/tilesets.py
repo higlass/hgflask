@@ -7,6 +7,7 @@ import slugid
 class Tileset:
     def __init__(self, tileset_info=None, 
             tiles=None, 
+            uuid=None,
             chromsizes=lambda: None):
         '''
         Parameters 
@@ -20,7 +21,10 @@ class Tileset:
         self.tileset_info_fn = tileset_info 
         self.tiles_fn = tiles
         self.chromsizes_fn = chromsizes
-        self.uuid = slugid.nice().decode('utf-8')
+        if uuid is not None:
+            self.uuid = uuid 
+        else:
+            self.uuid = slugid.nice().decode('utf-8')
 
     def tileset_info(self):
         return self.tileset_info_fn()
@@ -31,20 +35,23 @@ class Tileset:
     def chromsizes(self):
         return self.chromsizes_fn()
 
-def cooler(filepath):
+def cooler(filepath, uuid=None):
     return Tileset(
             tileset_info=lambda: hgco.tileset_info(filepath),
-            tiles=lambda tids: hgco.tiles(filepath, tids)
+            tiles=lambda tids: hgco.tiles(filepath, tids),
+            uuid=uuid
         )
 
-def bigwig(filepath, chromsizes=None):
+def bigwig(filepath, chromsizes=None, uuid=None):
     return Tileset(
             tileset_info=lambda: hgbi.tileset_info(filepath, chromsizes),
-            tiles=lambda tids: hgbi.tiles(filepath, tids, chromsizes=chromsizes)
+            tiles=lambda tids: hgbi.tiles(filepath, tids, chromsizes=chromsizes),
+            uuid=uuid
         )
 
-def chromsizes(filepath):
+def chromsizes(filepath, uuid=None):
     return Tileset(
-            chromsizes=lambda: hgch.get_tsv_chromsizes(filepath)
+            chromsizes=lambda: hgch.get_tsv_chromsizes(filepath),
+            uuid=uuid
         )
 
