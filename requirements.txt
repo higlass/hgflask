@@ -3,7 +3,7 @@ flask
 flask_cors
 slugid
 hgtiles>=0.2.15
--e git+https://github.com/nvictus/pybbi.git@v0.1.1#egg=pybbi
+scipy
 cooler
 clodius
 sh
