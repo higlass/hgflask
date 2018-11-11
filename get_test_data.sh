@@ -8,6 +8,7 @@ Dixon2012-J1-NcoI-R1-filtered.100kb.multires.cool
 wgEncodeCaltechRnaSeqHuvecR1x75dTh1014IlnaPlusSignalRep2.bigWig
 chromSizes_hg19.tsv 
 chromSizes_hg19_reordered.tsv
+int_matrices.hdf5
 END
 )
 

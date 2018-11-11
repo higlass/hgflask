@@ -134,6 +134,7 @@ class View:
         viewconf = json.loads(json.dumps(self.viewconf))
 
         for track in self.tracks:
+            print("track.position", track.position)
             viewconf['tracks'][track.position] += [track.to_json()]
 
         return viewconf
