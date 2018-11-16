@@ -310,8 +310,10 @@ class Server:
         '''
         Return the tileset info for the given tileset
         '''
-        url = 'http://localhost:{port}/api/v1/tileset_info/?d={uid}'.format(
-                port=self.port, uid=uid)
+        url = 'http://{host}:{port}/api/v1/tileset_info/?d={uid}'.format(
+            host=self.host,
+            port=self.port,
+            uid=uid)
 
         req = requests.get(url)
         if req.status_code != 200:
@@ -328,8 +330,10 @@ class Server:
         tile_id ='{uid}.{z}.{x}'.format(uid=uid, z=z, x=x)
         if y is not None:
             tile_id += '.{y}'.format(y=y)
-        url = 'http://localhost:{port}/api/v1/tiles/?d={tile_id}'.format(
-                port=self.port, tile_id=tile_id)
+        url = 'http://{host}:{port}/api/v1/tiles/?d={tile_id}'.format(
+            host=self.host,
+            port=self.port,
+            tile_id=tile_id)
 
         req = requests.get(url)
         if req.status_code != 200:
@@ -342,9 +346,10 @@ class Server:
         '''
         Return the chromosome sizes from the given filename
         '''
-        url = 'http://localhost:{port}/api/v1/chrom-sizes/?id={uid}'.format(
-                port=self.port,
-                uid=uid)
+        url = 'http://{host}:{port}/api/v1/chrom-sizes/?id={uid}'.format(
+            host=self.host,
+            port=self.port,
+            uid=uid)
 
         req = requests.get(url)
         if req.status_code != 200:
@@ -354,4 +359,6 @@ class Server:
 
     @property
     def api_address(self):
-        return 'http://{}:{}/api/v1'.format(self.host, self.port)
+        return 'http://{host}:{port}/api/v1'.format(
+            host=self.host,
+            port=self.port)
