@@ -9,6 +9,6 @@ def test_client1():
             tileset_uuid='a',
             api_url='localhost:8989')
 
-    result = viewconf.to_json()
+    result = viewconf.to_dict()
 
     print('result:', result)

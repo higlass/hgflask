@@ -5,8 +5,9 @@ import hgtiles.cooler as hgco
 import slugid
 
 class Tileset:
-    def __init__(self, name, datatype, tileset_info=None, tiles=None,
-                 chromsizes=lambda: None, uuid=None, private=False):
+    def __init__(self, tileset_info=None, tiles=None,
+                 chromsizes=lambda: None, uuid=None, 
+                 private=False, name='', datatype=''):
         '''
         Parameters
         ----------
@@ -17,7 +18,6 @@ class Tileset:
             A function returning tile data for this tileset
         '''
         self.name = name
-        self.datatype = datatype
         self.tileset_info_fn = tileset_info
         self.tiles_fn = tiles
         self.chromsizes_fn = chromsizes
@@ -67,10 +67,3 @@ def chromsizes(filepath, uuid=None):
             chromsizes=lambda: hgch.get_tsv_chromsizes(filepath),
             uuid=uuid
         )
-
-
-
-
-
-
-

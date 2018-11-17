@@ -304,7 +304,8 @@ class Server:
         Stop this server so that the calling process can exit
         '''
         # unsetup_fuse()
-        self.process.terminate()
+        for uuid in self.processes:
+            self.processes[uuid].terminate()
 
     def tileset_info(self, uid):
         '''
