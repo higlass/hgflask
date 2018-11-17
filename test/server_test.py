@@ -18,7 +18,8 @@ def test_server_start():
         ]
 
     print("hello")
-    server = hgse.start(ts)
+    server = hgse.Server(ts)
+    server.start()
 
     excepted = False
     try:

@@ -270,6 +270,7 @@ class Server:
             self.processes[puid].terminate()
             del self.processes[puid]
 
+        print('self.tilesets:', self.tilesets)
         self.app = create_app(
             self.tilesets,
             __name__,
@@ -304,7 +305,8 @@ class Server:
         Stop this server so that the calling process can exit
         '''
         # unsetup_fuse()
-        self.process.terminate()
+        for uuid in self.processes:
+            self.processes[uuid].terminate()
 
     def tileset_info(self, uid):
         '''
