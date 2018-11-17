@@ -2,27 +2,28 @@ import hgtiles.bigwig as hgbi
 import hgtiles.chromsizes as hgch
 import hgtiles.cooler as hgco
 
-import slugid 
+import slugid
 
 class Tileset:
-    def __init__(self, tileset_info=None, 
-            tiles=None, 
-            uuid=None,
-            chromsizes=lambda: None):
+    def __init__(self, tileset_info=None, tiles=None,
+                 chromsizes=lambda: None, uuid=None, 
+                 private=False, name='', datatype=''):
         '''
-        Parameters 
+        Parameters
         ----------
-        tileset_info: function 
+        tileset_info: function
             A function returning the information (min_pos, max_pos, max_width, max_zoom),
             for this tileset.
-        tiles: function 
-            A function returning tile data for this tileset  
+        tiles: function
+            A function returning tile data for this tileset
         '''
-        self.tileset_info_fn = tileset_info 
+        self.name = name
+        self.tileset_info_fn = tileset_info
         self.tiles_fn = tiles
         self.chromsizes_fn = chromsizes
+        self.private = private
         if uuid is not None:
-            self.uuid = uuid 
+            self.uuid = uuid
         else:
             self.uuid = slugid.nice().decode('utf-8')
 
@@ -31,9 +32,21 @@ class Tileset:
 
     def tiles(self, tile_ids ):
         return self.tiles_fn(tile_ids)
-    
+
     def chromsizes(self):
         return self.chromsizes_fn()
+
+    @property
+    def meta(self):
+        return {
+            'uuid': self.uuid,
+            # 'filetype': 'numpy',
+            'datatype': self.datatype,
+            'private': self.private,
+            'name': self.name,
+            # 'coordSysetem': "hg19",
+            # 'coordSystem2': "hg19",
+        }
 
 def cooler(filepath, uuid=None):
     return Tileset(
@@ -54,4 +67,3 @@ def chromsizes(filepath, uuid=None):
             chromsizes=lambda: hgch.get_tsv_chromsizes(filepath),
             uuid=uuid
         )
-
