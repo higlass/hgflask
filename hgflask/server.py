@@ -270,7 +270,6 @@ class Server:
             self.processes[puid].terminate()
             del self.processes[puid]
 
-        print('self.tilesets:', self.tilesets)
         self.app = create_app(
             self.tilesets,
             __name__,
