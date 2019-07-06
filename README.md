@@ -1,3 +1,5 @@
+👉 **[Click here if you are looking for `higlass-python`](https://github.com/higlass/higlass-python)! This repo is outdated.** 👍
+
 # hgflask
 
 Lightweight Flask HiGlass Server for dynamic track generation in interactive Python sessions.
